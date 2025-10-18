@@ -1,11 +1,14 @@
 package com.polstat.perpustakaan.auth;
 
 import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import java.io.Serializable;
+import java.security.Key;
 import java.util.Date;
 
 @Component
@@ -13,8 +16,18 @@ public class JwtUtil implements Serializable {
 
     @Value("${jwt.secret}")
     private String SECRET_KEY;
+
     @Value("${jwt.expiration}")
     private long EXPIRE_DURATION;
+
+    private Key key; // Kunci akan disimpan di sini
+
+    // Metode ini akan berjalan sekali setelah setup awal
+    @PostConstruct
+    public void init() {
+        // Mengubah String SECRET_KEY menjadi objek Key yang aman
+        this.key = Keys.hmacShaKeyFor(SECRET_KEY.getBytes());
+    }
 
     public String generateAccessToken(Authentication authentication) {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
@@ -23,13 +36,14 @@ public class JwtUtil implements Serializable {
                 .setIssuer("Polstat")
                 .setIssuedAt(new Date())
                 .setExpiration(new Date(System.currentTimeMillis() + EXPIRE_DURATION))
-                .signWith(SignatureAlgorithm.HS512, SECRET_KEY)
+                // Menggunakan objek Key yang sudah aman
+                .signWith(key)
                 .compact();
     }
 
     public boolean validateAccessToken(String token) {
         try {
-            Jwts.parser().setSigningKey(SECRET_KEY).parseClaimsJws(token);
+            Jwts.parserBuilder().setSigningKey(key).build().parseClaimsJws(token);
             return true;
         } catch (ExpiredJwtException ex) {
             System.err.println("JWT expired: " + ex.getMessage());
@@ -50,8 +64,9 @@ public class JwtUtil implements Serializable {
     }
 
     private Claims parseClaims(String token) {
-        return Jwts.parser()
-                .setSigningKey(SECRET_KEY)
+        return Jwts.parserBuilder()
+                .setSigningKey(key)
+                .build()
                 .parseClaimsJws(token)
                 .getBody();
     }
