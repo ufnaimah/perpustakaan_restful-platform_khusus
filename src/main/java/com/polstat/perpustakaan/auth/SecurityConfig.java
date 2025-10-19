@@ -35,17 +35,16 @@ public class SecurityConfig {
         http
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                // --- PERBAIKAN DI SINI ---
                 .authorizeHttpRequests(auth -> auth
-                        // Izinkan akses publik ke login, register, dan SEMUA path dokumentasi
+                        // Pastikan "/register" ada di sini
                         .requestMatchers(
                                 "/login",
                                 "/register",
-                                "/api-docs/**",      // Path untuk file JSON/YAML OpenAPI
-                                "/swagger-ui/**",      // Path untuk resource (CSS, JS) Swagger UI
-                                "/swagger-ui.html"   // Path untuk halaman utama Swagger UI
+                                "/api-docs/**",
+                                "/swagger-ui/**",
+                                "/swagger-ui.html",
+                                "/api/**"
                         ).permitAll()
-                        // Semua permintaan lain harus diotentikasi
                         .anyRequest().authenticated()
                 )
                 .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
